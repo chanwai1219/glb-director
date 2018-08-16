@@ -33,7 +33,7 @@
 
 #include <rte_branch_prediction.h>
 #include <rte_mbuf.h>
-#include "strlcpy.h"
+//#include "strlcpy.h"
 
 static inline void burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 {

@@ -59,60 +59,46 @@ STUB_SRCS = stub_server.c \
 	../siphash24.c \
 	../shared_opt.c
 
+CHECK_TMP := $(patsubst ../%.c,./%.o,$(CHECK_SRCS))
+CHECK_OBJ := $(patsubst %.c,%.o,$(CHECK_TMP))
+
+PCAP_TMP := $(patsubst ../%.c,./%.o,$(PCAP_SRCS))
+PCAP_OBJ := $(patsubst %.c,%.o,$(PCAP_TMP))
+
+STUB_TMP := $(patsubst ../%.c,./%.o,$(STUB_SRCS))
+STUB_OBJ := $(patsubst %.c,%.o,$(STUB_TMP))
+
 CFLAGS += -Wall
 
 WERROR_FLAGS += -Werror
 
 CFLAGS += -O3 -g
 CFLAGS += $(WERROR_FLAGS)
-CFLAGS += -pie -fPIE -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
+CFLAGS += -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
 CFLAGS += -fstack-protector-all
 CFLAGS += -DCLI_MODE
+CFLAGS += -m64 -mssse3
 
-LDFLAGS += -z relro -z now
-LDFLAGS += -ljansson
+LDFLAGS += -L/home/ubuntu/dpdk/x86_64-native-linuxapp-gcc/lib/
+#LDFLAGS += -z relro -z now
+LDFLAGS += -ljansson -lnuma -ldl -lpthread
 
 glb-director-cli: main.c
-	gcc \
-		$(CFLAGS) $(LDFLAGS) \
-		-I`pwd`/.. \
-		main.c \
-		../siphash24.c \
-		-o glb-director-cli
+	gcc -c $(CFLAGS) -I`pwd`/.. main.c
+	gcc -c $(CFLAGS) -I`pwd`/.. ../siphash24.c
+	gcc -o glb-director-cli main.o siphash24.o $(LDFLAGS)
 
 glb-config-check:
-	gcc \
-		$(CFLAGS) $(LDFLAGS) \
-		$(CHECK_SRCS) \
-		-o glb-config-check \
-		-I`pwd`/.. \
-		-I/usr/include/dpdk \
-		-I/usr/include/x86_64-linux-gnu \
-		-ldpdk -lpcap \
-		-m64 -mssse3
+	gcc -c $(CFLAGS) -I`pwd`/.. -I/home/ubuntu/dpdk/x86_64-native-linuxapp-gcc/include $(CHECK_SRCS)
+	gcc -o glb-config-check $(CHECK_OBJ) $(LDFLAGS) -ldpdk -ldl -lnuma
 
 glb-director-pcap:
-	gcc \
-		$(CFLAGS) $(LDFLAGS) \
-		$(PCAP_SRCS) \
-		-o glb-director-pcap \
-		-I`pwd`/.. \
-		-I/usr/include/dpdk \
-		-I/usr/include/x86_64-linux-gnu \
-		-lpcap \
-		-DPCAP_MODE \
-		-m64 -mssse3
+	gcc -c $(CFLAGS) -I`pwd`/.. -I/home/ubuntu/dpdk/x86_64-native-linuxapp-gcc/include -DPCAP_MODE $(PCAP_SRCS)
+	gcc -o glb-director-pcap $(PCAP_OBJ) $(LDFLAGS) -lpcap
 
 glb-director-stub-server:
-	gcc \
-		$(CFLAGS) $(LDFLAGS) \
-		$(STUB_SRCS) \
-		-o glb-director-stub-server \
-		-I`pwd`/.. \
-		-I/usr/include/dpdk \
-		-I/usr/include/x86_64-linux-gnu \
-		-DPCAP_MODE \
-		-m64 -mssse3
+	gcc -c $(CFLAGS) -I`pwd`/.. -I/home/ubuntu/dpdk/x86_64-native-linuxapp-gcc/include -DPCAP_MODE $(STUB_SRCS)
+	gcc -o glb-director-stub-server $(STUB_OBJ) $(LDFLAGS) -lpcap
 
 clean:
 	rm -rf glb-director-cli glb-config-check glb-director-pcap glb-director-stub-server
